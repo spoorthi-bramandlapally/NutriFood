@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActivityLevel, Gender, UserProfile } from '../types';
-import { Activity, Ruler, Weight, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Activity, Ruler, Weight, ArrowRight, Loader2 } from 'lucide-react';
 
 interface HealthFormProps {
   onSubmit: (data: UserProfile) => void;
