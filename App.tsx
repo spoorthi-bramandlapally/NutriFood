@@ -6,7 +6,7 @@ import Recommendations from './components/Recommendations';
 import { UserProfile, BMIData, RecommendationResponse } from './types';
 import { calculateBMI } from './utils/helpers';
 import { generateHealthPlan } from './services/gemini';
-import { AlertCircle, ChevronDown } from 'lucide-react';
+import { AlertCircle, ChevronDown, ExternalLink } from 'lucide-react';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -87,9 +87,24 @@ const App: React.FC = () => {
 
         {/* Error Message */}
         {error && (
-            <div className="error-alert animate-fade-in">
-                <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                <p>{error}</p>
+            <div className={`error-alert animate-fade-in ${error.includes("Google Cloud Console") ? "has-action" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <AlertCircle size={20} className="error-icon" />
+                  <div className="flex flex-col gap-2 w-full">
+                      <p className="error-text">{error}</p>
+                      {error.includes("Google Cloud Console") && (
+                          <a 
+                              href="https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="error-action-btn"
+                          >
+                              <span>Enable API in Google Cloud</span>
+                              <ExternalLink size={14} />
+                          </a>
+                      )}
+                  </div>
+                </div>
             </div>
         )}
 
