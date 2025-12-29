@@ -28,59 +28,72 @@ export const generateHealthPlan = async (profile: UserProfile, bmi: number, bmiC
     Ensure recommendations are age-appropriate and realistic.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          summary: { type: Type.STRING, description: "A short, motivating summary message about their current status and goals." },
-          exercise: {
-            type: Type.OBJECT,
-            properties: {
-              routine: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific exercises suitable for them." },
-              frequency: { type: Type.STRING, description: "Recommended duration and frequency (e.g. 30 mins, 4x a week)." },
-              home_workouts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Simple exercises they can do at home." }
-            }
-          },
-          walking: {
-            type: Type.OBJECT,
-            properties: {
-              daily_steps: { type: Type.STRING, description: "Target step count." },
-              tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips to increase activity (e.g. take stairs)." }
-            }
-          },
-          nutrition: {
-            type: Type.OBJECT,
-            properties: {
-              meals: { type: Type.ARRAY, items: { type: Type.STRING }, description: "General meal ideas for Breakfast, Lunch, Dinner." },
-              hydration: { type: Type.STRING, description: "Daily water intake recommendation." },
-              foods_to_include: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Top healthy foods to add." },
-              foods_to_avoid: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Foods to limit or avoid." }
-            }
-          },
-          lifestyle: {
-            type: Type.OBJECT,
-            properties: {
-              sleep: { type: Type.STRING, description: "Sleep duration recommendation." },
-              stress_management: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips for mental well-being." }
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING, description: "A short, motivating summary message about their current status and goals." },
+            exercise: {
+              type: Type.OBJECT,
+              properties: {
+                routine: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific exercises suitable for them." },
+                frequency: { type: Type.STRING, description: "Recommended duration and frequency (e.g. 30 mins, 4x a week)." },
+                home_workouts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Simple exercises they can do at home." }
+              }
+            },
+            walking: {
+              type: Type.OBJECT,
+              properties: {
+                daily_steps: { type: Type.STRING, description: "Target step count." },
+                tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips to increase activity (e.g. take stairs)." }
+              }
+            },
+            nutrition: {
+              type: Type.OBJECT,
+              properties: {
+                meals: { type: Type.ARRAY, items: { type: Type.STRING }, description: "General meal ideas for Breakfast, Lunch, Dinner." },
+                hydration: { type: Type.STRING, description: "Daily water intake recommendation." },
+                foods_to_include: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Top healthy foods to add." },
+                foods_to_avoid: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Foods to limit or avoid." }
+              }
+            },
+            lifestyle: {
+              type: Type.OBJECT,
+              properties: {
+                sleep: { type: Type.STRING, description: "Sleep duration recommendation." },
+                stress_management: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips for mental well-being." }
+              }
             }
           }
         }
       }
+    });
+
+    if (!response.text) {
+      throw new Error("No response generated from Gemini.");
     }
-  });
 
-  if (!response.text) {
-    throw new Error("No response generated from Gemini.");
-  }
-
-  try {
     return JSON.parse(response.text) as RecommendationResponse;
-  } catch (e) {
-    console.error("Failed to parse Gemini response", e);
-    throw new Error("Failed to generate a valid plan. Please try again.");
+
+  } catch (error: any) {
+    console.error("Gemini API Error details:", error);
+    
+    // Specific handling for the "API Not Enabled" error
+    if (error.message && (error.message.includes("Generative Language API has not been used") || error.message.includes("SERVICE_DISABLED"))) {
+      throw new Error("The Gemini API is not enabled on your Google Cloud Project. Please enable it in the Google Cloud Console.");
+    }
+    
+    // Handle JSON parsing errors specifically
+    if (error instanceof SyntaxError) {
+      throw new Error("Received an invalid response format. Please try again.");
+    }
+
+    // Pass through the original message if available, otherwise a generic one
+    throw new Error(error.message || "Failed to generate health plan. Please try again.");
   }
 };
